@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Chatbot Streaming Response</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        #chatArea { margin-top: 20px; padding: 10px; border: 1px solid #ddd; height: 400px; overflow-y: scroll; }
+        .message { margin: 5px 0; }
+    </style>
+</head>
+<body>
+<h1>AI Chatbot</h1>
+<div>
+    <input type="text" id="questionInput" placeholder="Enter your question" style="width: 300px;">
+    <button id="sendButton">Send</button>
+</div>
+<div id="chatArea"></div>
+
+<script>
+    document.getElementById('sendButton').addEventListener('click', async function() {
+        // Clear previous messages
+        const chatArea = document.getElementById('chatArea');
+        chatArea.innerHTML = '';
+
+        // Get the question from the input box
+        const question = document.getElementById('questionInput').value;
+
+        // Send a POST request with JSON body
+        const response = await fetch('/api/v1/conversation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ content: question })
+        });
+
+        // Check if the response is OK
+        if (!response.ok) {
+            console.error('Network response was not ok');
+            return;
+        }
+
+        // Process the streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let partialData = '';
+
+        // Recursive function to read the stream
+        function read() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    console.log("Stream complete");
+                    return;
+                }
+                // Decode the received chunk
+                partialData += decoder.decode(value, { stream: true });
+                // SSE events are separated by double newline (\n\n)
+                const events = partialData.split("\n\n");
+                // The last element might be incomplete; save it for later
+                partialData = events.pop();
+                events.forEach(eventStr => {
+                    if (eventStr.trim()) {
+                        // Each event line may start with "data:"; extract that content.
+                        const dataLine = eventStr.split('\n').find(line => line.startsWith("data:"));
+                        if (dataLine) {
+                            const data = dataLine.replace("data:", "").trim();
+                            // Append the token to the chat area
+                            const messageElem = document.createElement('p');
+                            messageElem.className = 'message';
+                            messageElem.textContent = data;
+                            chatArea.appendChild(messageElem);
+                            // Auto-scroll to the bottom
+                            chatArea.scrollTop = chatArea.scrollHeight;
+                        }
+                    }
+                });
+                // Continue reading the stream
+                read();
+            }).catch(error => {
+                console.error("Error reading stream:", error);
+            });
+        }
+        read();
+    });
+</script>
+</body>
+</html>
