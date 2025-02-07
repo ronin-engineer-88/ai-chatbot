@@ -10,7 +10,7 @@ import reactor.core.publisher.Flux;
 @RestController
 @RequestMapping("/api/v1")
 @RequiredArgsConstructor
-public class ChatController {
+public class ConversationController {
 
     private final LLMConnector llmConnector;
 
@@ -18,7 +18,10 @@ public class ChatController {
     public Flux<ServerSentEvent<String>> chat(@RequestBody PromptRequest request) {
         // Return SSEs
         return llmConnector.respond(request.getContent())
-                .map(token -> ServerSentEvent.builder(token).build());
+                .map(token -> ServerSentEvent.<String>builder()
+                        .event("delta")
+                        .data(token)
+                        .build());
 
         // TODO
         // At the beginning of the stream, return small chucks fast.
