@@ -30,12 +30,24 @@ dependencies {
     // Netty: Non-blocking IO --> handle a lot of requests at the same time
     // Reactor: Reactive (non-blocking) programming model --> save resources
 
+
+
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
+
+
+
+
+
+
+
+
+
+
 
 tasks.named('test') {
     useJUnitPlatform()
